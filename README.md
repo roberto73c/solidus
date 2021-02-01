@@ -1,4 +1,4 @@
 <h1 align="center">Solidus</h1>
 
-[![Build Status](https://travis-ci.org/roberto73c/solidus.svg?branch=master)](https://travis-ci.org/roberto73c/solidus)
+[![Build Status](https://travis-ci.com/roberto73c/solidus.svg?branch=master)](https://travis-ci.com/roberto73c/solidus)
 [![License](https://img.shields.io/hexpm/l/plug.svg)](https://github.com/roberto73c/solidus/blog/master/LICENSE)
