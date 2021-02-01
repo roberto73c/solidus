@@ -141,11 +141,11 @@ Setup for docker:
 
 While gitian and this build script does provide a way for you to sign the build directly, it is recommended to sign in a separate step. This script is only there for convenience. Separate steps for building can still be taken.
 In order to sign gitian builds on your host machine, which has your PGP key, 
-fork the [gitian.sigs repository](https://github.com/solidus-project/gitian.sigs) and clone it on your host machine,
+fork the [gitian.sigs repository](https://github.com/roberto73c/gitian.sigs) and clone it on your host machine,
 or pass the signed assert file back to your build machine.
 
 ```bash
-git clone git@github.com:solidus-project/gitian.sigs.git
+git clone git@github.com:roberto73c/gitian.sigs.git
 git remote add $GH_USER git@github.com:$GH_USER/gitian.sigs.git
 ```
 
@@ -172,7 +172,7 @@ Take a look in the assert files and note the SHA256 checksums listed there.
 You should verify that the checksum that is listed matches each of the binaries you actually built.
 This may be done on Linux using the `sha256sum` command or on MacOS using `shasum --algorithm 256` for example.
 
-You can also look in the [gitian.sigs](https://github.com/solidus-project/gitian.sigs/) repo and / or [getsolidus.org release checksums](https://web.getsolidus.org/downloads/hashes.txt) to see if others got the same checksum for the same version tag.  If there is ever a mismatch -- **STOP! Something is wrong**.  Contact others on IRC / github to figure out what is going on.
+You can also look in the [gitian.sigs](https://github.com/roberto73c/gitian.sigs/) repo and / or [getsolidus.org release checksums](https://web.getsolidus.org/downloads/hashes.txt) to see if others got the same checksum for the same version tag.  If there is ever a mismatch -- **STOP! Something is wrong**.  Contact others on IRC / github to figure out what is going on.
 
 
 Signing assert files
@@ -197,7 +197,7 @@ Submitting your signed assert files
 -----------------------------------
 
 Make a pull request (both the `.assert` and `.assert.sig` files) to the
-[solidus-project/gitian.sigs](https://github.com/solidus-project/gitian.sigs/) repository:
+[roberto73c/gitian.sigs](https://github.com/roberto73c/gitian.sigs/) repository:
 
 ```bash
 git checkout -b $VERSION
@@ -206,7 +206,7 @@ git commit -S -a -m "Add $GH_USER $VERSION"
 git push --set-upstream $GH_USER $VERSION
 ```
 
-**Note:** Please ensure your gpg public key is available to check signatures by adding it to the [gitian.sigs/gitian-pubkeys/](https://github.com/solidus-project/gitian.sigs/tree/master/gitian-pubkeys) directory in a pull request.
+**Note:** Please ensure your gpg public key is available to check signatures by adding it to the [gitian.sigs/gitian-pubkeys/](https://github.com/roberto73c/gitian.sigs/tree/master/gitian-pubkeys) directory in a pull request.
 
 
 More Build Options
