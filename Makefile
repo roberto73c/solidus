@@ -47,8 +47,8 @@ endif
 all: release-all
 
 depends:
-	cd contrib/depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
-	cd build/$(target)/release && cmake -DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/contrib/depends/$(target)/share/toolchain.cmake ../../.. && $(MAKE)
+	cd depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
+	cd build/$(target)/release && cmake -DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/depends/$(target)/share/toolchain.cmake ../../.. && $(MAKE)
 
 cmake-debug:
 	mkdir -p $(builddir)/debug
