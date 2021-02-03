@@ -1,6 +1,8 @@
 sudo: required
 dist: trusty
-os: linux
+os:
+  - linux
+  - osx
 language: minimal
 cache:
   directories:
