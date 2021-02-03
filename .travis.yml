@@ -1,10 +1,9 @@
 sudo: required
 dist: trusty
-os:
-  - linux
-  - osx
-language: minimal
+os: linux
+  language: minimal
 cache:
+  ccache: true
   directories:
   - contrib/depends/built
   - contrib/depends/sdk-sources
