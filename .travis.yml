@@ -1,7 +1,7 @@
 sudo: required
 dist: trusty
 os: linux
-  language: minimal
+  language: generic
 cache:
   ccache: true
   directories:
@@ -11,6 +11,9 @@ cache:
 env:
   global:
     - MAKEJOBS=-j3
+    - RUN_TESTS=false
+    - CHECK_DOC=0
+    - BOOST_TEST_RANDOM=1$TRAVIS_BUILD_ID
     - CCACHE_SIZE=100M
     - CCACHE_TEMPDIR=/tmp/.ccache-temp
     - CCACHE_COMPRESS=1
@@ -18,6 +21,8 @@ env:
     - BASE_OUTDIR=$TRAVIS_BUILD_DIR/out
     - SDK_URL=https://bitcoincore.org/depends-sources/sdks
     - DOCKER_PACKAGES="build-essential libtool cmake autotools-dev automake pkg-config bsdmainutils curl git ca-certificates ccache"
+    - PYTHON_DEBUG=1
+    - WINEDEBUG=fixme-all
   matrix:
 # RISCV 64bit
     - HOST=riscv64-linux-gnu PACKAGES="python3 gperf g++-riscv64-linux-gnu"
