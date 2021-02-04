@@ -1,10 +1,10 @@
 [submodule "external/unbound"]
 	path = external/unbound
-	url = https://github.com/monero-project/unbound
+	url = https://github.com/solidus-project/unbound
 	branch = solidus
 [submodule "external/miniupnp"]
 	path = external/miniupnp
-	url = https://github.com/monero-project/miniupnp
+	url = https://github.com/solidus-project/miniupnp
 	branch = solidus
 [submodule "external/rapidjson"]
 	path = external/rapidjson
@@ -17,5 +17,5 @@
 	url = https://github.com/tevador/RandomX
 [submodule "external/supercop"]
 	path = external/supercop
-	url = https://github.com/monero-project/supercop
+	url = https://github.com/solidus-project/supercop
 	branch = solidus
