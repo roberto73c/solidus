@@ -190,7 +190,6 @@ namespace cryptonote
 
     request.gray = true;
     request.white = true;
-    request.include_blocked = false;
     if (!on_get_public_nodes(request, response) || response.status != CORE_RPC_STATUS_OK)
     {
       return {};
@@ -265,18 +264,6 @@ namespace cryptonote
     if (!rpc_config)
       return false;
 
-    std::string bind_ip_str = rpc_config->bind_ip;
-    std::string bind_ipv6_str = rpc_config->bind_ipv6_address;
-    if (restricted)
-    {
-      const auto restricted_rpc_port_arg = cryptonote::core_rpc_server::arg_rpc_restricted_bind_port;
-      const bool has_restricted_rpc_port_arg = !command_line::is_arg_defaulted(vm, restricted_rpc_port_arg);
-      if (has_restricted_rpc_port_arg && port == command_line::get_arg(vm, restricted_rpc_port_arg))
-      {
-        bind_ip_str = rpc_config->restricted_bind_ip;
-        bind_ipv6_str = rpc_config->restricted_bind_ipv6_address;
-      }
-    }
     disable_rpc_ban = rpc_config->disable_rpc_ban;
     std::string address = command_line::get_arg(vm, arg_rpc_payment_address);
     if (!address.empty() && allow_rpc_payment)
@@ -313,7 +300,7 @@ namespace cryptonote
     if (!m_rpc_payment)
     {
       uint32_t bind_ip;
-      bool ok = epee::string_tools::get_ip_int32_from_string(bind_ip, bind_ip_str);
+      bool ok = epee::string_tools::get_ip_int32_from_string(bind_ip, rpc_config->bind_ip);
       if (ok & !epee::net_utils::is_ip_loopback(bind_ip))
         MWARNING("The RPC server is accessible from the outside, but no RPC payment was setup. RPC access will be free for all.");
     }
@@ -335,8 +322,8 @@ namespace cryptonote
 
     auto rng = [](size_t len, uint8_t *ptr){ return crypto::rand(len, ptr); };
     return epee::http_server_impl_base<core_rpc_server, connection_context>::init(
-      rng, std::move(port), std::move(bind_ip_str),
-      std::move(bind_ipv6_str), std::move(rpc_config->use_ipv6), std::move(rpc_config->require_ipv4),
+      rng, std::move(port), std::move(rpc_config->bind_ip),
+      std::move(rpc_config->bind_ipv6_address), std::move(rpc_config->use_ipv6), std::move(rpc_config->require_ipv4),
       std::move(rpc_config->access_control_origins), std::move(http_login), std::move(rpc_config->ssl_options)
     );
   }
@@ -499,8 +486,6 @@ namespace cryptonote
       res.database_size = round_up(res.database_size, 5ull* 1024 * 1024 * 1024);
     res.update_available = restricted ? false : m_core.is_update_available();
     res.version = restricted ? "" : MONERO_VERSION_FULL;
-    res.busy_syncing = m_p2p.get_payload_object().is_busy_syncing();
-    res.synchronized = check_core_ready();
 
     res.status = CORE_RPC_STATUS_OK;
     return true;
@@ -565,12 +550,12 @@ namespace cryptonote
       }
     }
 
-    size_t max_blocks = COMMAND_RPC_GET_BLOCKS_FAST_MAX_BLOCK_COUNT;
+    size_t max_blocks = COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT;
     if (m_rpc_payment)
     {
       max_blocks = res.credits / COST_PER_BLOCK;
-      if (max_blocks > COMMAND_RPC_GET_BLOCKS_FAST_MAX_BLOCK_COUNT)
-        max_blocks = COMMAND_RPC_GET_BLOCKS_FAST_MAX_BLOCK_COUNT;
+      if (max_blocks > COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT)
+        max_blocks = COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT;
       if (max_blocks == 0)
       {
         res.status = CORE_RPC_STATUS_PAYMENT_REQUIRED;
@@ -579,7 +564,7 @@ namespace cryptonote
     }
 
     std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > > bs;
-    if(!m_core.find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, req.prune, !req.no_miner_tx, max_blocks, COMMAND_RPC_GET_BLOCKS_FAST_MAX_TX_COUNT))
+    if(!m_core.find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, req.prune, !req.no_miner_tx, max_blocks))
     {
       res.status = "Failed";
       add_host_fail(ctx);
@@ -1146,11 +1131,6 @@ namespace cryptonote
   {
     RPC_TRACKER(send_raw_tx);
 
-    {
-      bool ok;
-      use_bootstrap_daemon_if_necessary<COMMAND_RPC_SEND_RAW_TX>(invoke_http_mode::JON, "/sendrawtransaction", req, res, ok);
-    }
-
     const bool restricted = m_restricted && ctx;
 
     bool skip_validation = false;
@@ -1165,10 +1145,6 @@ namespace cryptonote
       {
         CHECK_CORE_READY();
       }
-    }
-    else
-    {
-      CHECK_CORE_READY();
     }
 
     CHECK_PAYMENT_MIN1(req, res, COST_PER_TX_RELAY, false);
@@ -1384,8 +1360,6 @@ namespace cryptonote
 
     for (auto & entry : white_list)
     {
-      if (!req.include_blocked && m_p2p.is_host_blocked(entry.adr, NULL))
-        continue;
       if (entry.adr.get_type_id() == epee::net_utils::ipv4_network_address::get_type_id())
         res.white_list.emplace_back(entry.id, entry.adr.as<epee::net_utils::ipv4_network_address>().ip(),
             entry.adr.as<epee::net_utils::ipv4_network_address>().port(), entry.last_seen, entry.pruning_seed, entry.rpc_port, entry.rpc_credits_per_hash);
@@ -1398,8 +1372,6 @@ namespace cryptonote
 
     for (auto & entry : gray_list)
     {
-      if (!req.include_blocked && m_p2p.is_host_blocked(entry.adr, NULL))
-        continue;
       if (entry.adr.get_type_id() == epee::net_utils::ipv4_network_address::get_type_id())
         res.gray_list.emplace_back(entry.id, entry.adr.as<epee::net_utils::ipv4_network_address>().ip(),
             entry.adr.as<epee::net_utils::ipv4_network_address>().port(), entry.last_seen, entry.pruning_seed, entry.rpc_port, entry.rpc_credits_per_hash);
@@ -1418,10 +1390,8 @@ namespace cryptonote
   {
     RPC_TRACKER(get_public_nodes);
 
-    COMMAND_RPC_GET_PEER_LIST::request peer_list_req;
     COMMAND_RPC_GET_PEER_LIST::response peer_list_res;
-    peer_list_req.include_blocked = req.include_blocked;
-    const bool success = on_get_peer_list(peer_list_req, peer_list_res, ctx);
+    const bool success = on_get_peer_list(COMMAND_RPC_GET_PEER_LIST::request(), peer_list_res, ctx);
     res.status = peer_list_res.status;
     if (!success)
     {      
@@ -1698,13 +1668,6 @@ namespace cryptonote
       LOG_ERROR("Failed to get tx pub key in coinbase extra");
       return false;
     }
-
-    uint64_t next_height;
-    crypto::rx_seedheights(height, &seed_height, &next_height);
-    if (next_height != seed_height)
-      next_seed_hash = m_core.get_block_id_by_height(next_height);
-    else
-      next_seed_hash = seed_hash;
 
     if (extra_nonce.empty())
     {
@@ -2012,37 +1975,34 @@ namespace cryptonote
     }
 
     auto current_time = std::chrono::system_clock::now();
-    if (current_time - m_bootstrap_height_check_time > std::chrono::seconds(30))  // update every 30s
+    if (!m_p2p.get_payload_object().no_sync() &&
+        current_time - m_bootstrap_height_check_time > std::chrono::seconds(30))  // update every 30s
     {
       {
         boost::upgrade_to_unique_lock<boost::shared_mutex> lock(upgrade_lock);
         m_bootstrap_height_check_time = current_time;
       }
 
-      boost::optional<std::pair<uint64_t, uint64_t>> bootstrap_daemon_height_info = m_bootstrap_daemon->get_height();
-      if (!bootstrap_daemon_height_info)
+      boost::optional<uint64_t> bootstrap_daemon_height = m_bootstrap_daemon->get_height();
+      if (!bootstrap_daemon_height)
       {
         MERROR("Failed to fetch bootstrap daemon height");
         return false;
       }
 
-      const uint64_t bootstrap_daemon_height = bootstrap_daemon_height_info->first;
-      const uint64_t bootstrap_daemon_target_height = bootstrap_daemon_height_info->second;
-      if (bootstrap_daemon_height < bootstrap_daemon_target_height)
+      uint64_t target_height = m_core.get_target_blockchain_height();
+      if (*bootstrap_daemon_height < target_height)
       {
         MINFO("Bootstrap daemon is out of sync");
         return m_bootstrap_daemon->handle_result(false, {});
       }
 
-      if (!m_p2p.get_payload_object().no_sync())
-      {
-        uint64_t top_height = m_core.get_current_blockchain_height();
-        m_should_use_bootstrap_daemon = top_height + 10 < bootstrap_daemon_height;
-        MINFO((m_should_use_bootstrap_daemon ? "Using" : "Not using") << " the bootstrap daemon (our height: " << top_height << ", bootstrap daemon's height: " << bootstrap_daemon_height << ")");
+      uint64_t top_height = m_core.get_current_blockchain_height();
+      m_should_use_bootstrap_daemon = top_height + 10 < *bootstrap_daemon_height;
+      MINFO((m_should_use_bootstrap_daemon ? "Using" : "Not using") << " the bootstrap daemon (our height: " << top_height << ", bootstrap daemon's height: " << *bootstrap_daemon_height << ")");
 
-        if (!m_should_use_bootstrap_daemon)
-          return false;
-      }
+      if (!m_should_use_bootstrap_daemon)
+        return false;
     }
 
     if (mode == invoke_http_mode::JON)
@@ -2860,8 +2820,6 @@ namespace cryptonote
     RPC_TRACKER(relay_tx);
     CHECK_PAYMENT_MIN1(req, res, req.txids.size() * COST_PER_TX_RELAY, false);
 
-    const bool restricted = m_restricted && ctx;
-
     bool failed = false;
     res.status = "";
     for (const auto &str: req.txids)
@@ -2875,16 +2833,12 @@ namespace cryptonote
         continue;
       }
 
-      //TODO: The get_pool_transaction could have an optional meta parameter
-      bool broadcasted = false;
       cryptonote::blobdata txblob;
-      if ((broadcasted = m_core.get_pool_transaction(txid, txblob, relay_category::broadcasted)) || (!restricted && m_core.get_pool_transaction(txid, txblob, relay_category::all)))
+      if (m_core.get_pool_transaction(txid, txblob, relay_category::legacy))
       {
-        // The settings below always choose i2p/tor if enabled. Otherwise, do fluff iff previously relayed else dandelion++ stem.
         NOTIFY_NEW_TRANSACTIONS::request r;
         r.txs.push_back(std::move(txblob));
-        const auto tx_relay = broadcasted ? relay_method::fluff : relay_method::local;
-        m_core.get_protocol()->relay_transactions(r, boost::uuids::nil_uuid(), epee::net_utils::zone::invalid, tx_relay);
+        m_core.get_protocol()->relay_transactions(r, boost::uuids::nil_uuid(), epee::net_utils::zone::invalid, relay_method::local);
         //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
       }
       else
@@ -2922,7 +2876,11 @@ namespace cryptonote
     block_queue.foreach([&](const cryptonote::block_queue::span &span) {
       const std::string span_connection_id = epee::string_tools::pod_to_hex(span.connection_id);
       uint32_t speed = (uint32_t)(100.0f * block_queue.get_speed(span.connection_id) + 0.5f);
-      res.spans.push_back({span.start_block_height, span.nblocks, span_connection_id, (uint32_t)(span.rate + 0.5f), speed, span.size, span.origin.str()});
+      std::string address = "";
+      for (const auto &c: m_p2p.get_payload_object().get_connections())
+        if (c.connection_id == span_connection_id)
+          address = c.address;
+      res.spans.push_back({span.start_block_height, span.nblocks, span_connection_id, (uint32_t)(span.rate + 0.5f), speed, span.size, address});
       return true;
     });
     res.overview = block_queue.get_overview(res.height);

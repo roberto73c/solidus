@@ -120,12 +120,7 @@ namespace
     {
         std::map<cryptonote::relay_method, std::vector<cryptonote::blobdata>> relayed_;
 
-        virtual bool is_synchronized() const final
-        {
-            return false;
-        }
-
-        virtual uint64_t get_current_blockchain_height() const final
+        uint64_t get_target_blockchain_height() const override
         {
             return 0;
         }
@@ -178,17 +173,17 @@ namespace
         {
             using base_type = epee::net_utils::connection_context_base;
             static_cast<base_type&>(context_) = base_type{random_generator(), {}, is_incoming, false};
-            context_.m_state = cryptonote::cryptonote_connection_context::state_normal;
             handler_.after_init_connection();
         }
 
         //\return Number of messages processed
-        std::size_t process_send_queue(const bool valid = true)
+        std::size_t process_send_queue()
         {
             std::size_t count = 0;
             for ( ; !endpoint_.send_queue_.empty(); ++count, endpoint_.send_queue_.pop_front())
             {
-                EXPECT_EQ(valid, handler_.handle_recv(endpoint_.send_queue_.front().data(), endpoint_.send_queue_.front().size()));
+                // invalid messages shoudn't be possible in this test;
+                EXPECT_TRUE(handler_.handle_recv(endpoint_.send_queue_.front().data(), endpoint_.send_queue_.front().size()));
             }
             return count;
         }
@@ -236,13 +231,6 @@ namespace
             boost::uuids::uuid connection = queue.front().connection;
             queue.pop_front();
             return {connection, std::move(request)};
-        }
-
-        static received_message get_raw_message(std::deque<received_message>& queue)
-        {
-            received_message out{std::move(queue.front())};
-            queue.pop_front();
-            return out;
         }
 
         virtual int invoke(int command, const epee::span<const uint8_t> in_buff, std::string& buff_out, cryptonote::levin::detail::p2p_context& context) override final
@@ -301,11 +289,6 @@ namespace
         {
             return get_message<T>(notified_);
         }
-
-        received_message get_raw_notification()
-        {
-            return get_raw_message(notified_);
-        }
     };
 
     class levin_notify : public ::testing::Test
@@ -333,8 +316,6 @@ namespace
             EXPECT_EQ(0u, receiver_.notified_size());
             EXPECT_EQ(0u, events_.relayed_method_size());
         }
-
-        cryptonote::levin::connections& get_connections() noexcept { return *connections_; }
 
         void add_connection(const bool is_incoming)
         {
@@ -630,61 +611,6 @@ TEST_F(levin_notify, stem_without_padding)
         has_stemmed |= is_stem;
         has_fluffed |= !is_stem;
         notifier.run_epoch();
-    }
-}
-
-TEST_F(levin_notify, stem_no_outs_without_padding)
-{
-    cryptonote::levin::notify notifier = make_notifier(0, true, false);
-
-    for (unsigned count = 0; count < 10; ++count)
-        add_connection(true);
-
-    {
-        const auto status = notifier.get_status();
-        EXPECT_FALSE(status.has_noise);
-        EXPECT_FALSE(status.connections_filled);
-    }
-    notifier.new_out_connection();
-    io_service_.poll();
-
-    std::vector<cryptonote::blobdata> txs(2);
-    txs[0].resize(100, 'f');
-    txs[1].resize(200, 'e');
-
-    std::vector<cryptonote::blobdata> sorted_txs = txs;
-    std::sort(sorted_txs.begin(), sorted_txs.end());
-
-    ASSERT_EQ(10u, contexts_.size());
-
-    auto context = contexts_.begin();
-    EXPECT_TRUE(notifier.send_txs(txs, context->get_id(), cryptonote::relay_method::stem));
-
-    io_service_.reset();
-    ASSERT_LT(0u, io_service_.poll());
-    EXPECT_EQ(txs, events_.take_relayed(cryptonote::relay_method::fluff));
-    if (events_.has_stem_txes())
-        EXPECT_EQ(txs, events_.take_relayed(cryptonote::relay_method::stem));
-
-
-    notifier.run_fluff();
-    ASSERT_LT(0u, io_service_.poll());
-
-    std::size_t send_count = 0;
-    EXPECT_EQ(0u, context->process_send_queue());
-    for (++context; context != contexts_.end(); ++context)
-    {
-        send_count += context->process_send_queue();
-    }
-
-    EXPECT_EQ(9u, send_count);
-    ASSERT_EQ(9u, receiver_.notified_size());
-    for (unsigned count = 0; count < 9u; ++count)
-    {
-        auto notification = receiver_.get_notification<cryptonote::NOTIFY_NEW_TRANSACTIONS>().second;
-        EXPECT_EQ(sorted_txs, notification.txs);
-        EXPECT_TRUE(notification._.empty());
-        EXPECT_TRUE(notification.dandelionpp_fluff);
     }
 }
 
@@ -1000,60 +926,6 @@ TEST_F(levin_notify, stem_with_padding)
         has_stemmed |= is_stem;
         has_fluffed |= !is_stem;
         notifier.run_epoch();
-    }
-}
-
-TEST_F(levin_notify, stem_no_outs_with_padding)
-{
-    cryptonote::levin::notify notifier = make_notifier(0, true, true);
-
-    for (unsigned count = 0; count < 10; ++count)
-        add_connection(true);
-
-    {
-        const auto status = notifier.get_status();
-        EXPECT_FALSE(status.has_noise);
-        EXPECT_FALSE(status.connections_filled);
-    }
-    notifier.new_out_connection();
-    io_service_.poll();
-
-    std::vector<cryptonote::blobdata> txs(2);
-    txs[0].resize(100, 'f');
-    txs[1].resize(200, 'e');
-
-    std::vector<cryptonote::blobdata> sorted_txs = txs;
-    std::sort(sorted_txs.begin(), sorted_txs.end());
-
-    ASSERT_EQ(10u, contexts_.size());
-
-    auto context = contexts_.begin();
-    EXPECT_TRUE(notifier.send_txs(txs, context->get_id(), cryptonote::relay_method::stem));
-
-    io_service_.reset();
-    ASSERT_LT(0u, io_service_.poll());
-    EXPECT_EQ(txs, events_.take_relayed(cryptonote::relay_method::fluff));
-    if (events_.has_stem_txes())
-        EXPECT_EQ(txs, events_.take_relayed(cryptonote::relay_method::stem));
-
-    notifier.run_fluff();
-    ASSERT_LT(0u, io_service_.poll());
-
-    std::size_t send_count = 0;
-    EXPECT_EQ(0u, context->process_send_queue());
-    for (++context; context != contexts_.end(); ++context)
-    {
-        send_count += context->process_send_queue();
-    }
-
-    EXPECT_EQ(9u, send_count);
-    ASSERT_EQ(9u, receiver_.notified_size());
-    for (unsigned count = 0; count < 9u; ++count)
-    {
-        auto notification = receiver_.get_notification<cryptonote::NOTIFY_NEW_TRANSACTIONS>().second;
-        EXPECT_EQ(sorted_txs, notification.txs);
-        EXPECT_FALSE(notification._.empty());
-        EXPECT_TRUE(notification.dandelionpp_fluff);
     }
 }
 
@@ -2153,28 +2025,4 @@ TEST_F(levin_notify, noise_stem)
             EXPECT_FALSE(notification.dandelionpp_fluff);
         }
     }
-}
-
-TEST_F(levin_notify, command_max_bytes)
-{
-    static constexpr int ping_command = nodetool::COMMAND_PING::ID;
-
-    add_connection(true);
-
-    std::string bytes(4096, 'h');
-
-    EXPECT_EQ(1, get_connections().notify(ping_command, epee::strspan<std::uint8_t>(bytes), contexts_.front().get_id()));
-    EXPECT_EQ(1u, contexts_.front().process_send_queue(true));
-    EXPECT_EQ(1u, receiver_.notified_size());
-
-    const received_message msg = receiver_.get_raw_notification();
-    EXPECT_EQ(ping_command, msg.command);
-    EXPECT_EQ(contexts_.front().get_id(), msg.connection);
-    EXPECT_EQ(bytes, msg.payload);
-
-    bytes.push_back('e');
-
-    EXPECT_EQ(1, get_connections().notify(ping_command, epee::strspan<std::uint8_t>(bytes), contexts_.front().get_id()));
-    EXPECT_EQ(1u, contexts_.front().process_send_queue(false));
-    EXPECT_EQ(0u, receiver_.notified_size());
 }

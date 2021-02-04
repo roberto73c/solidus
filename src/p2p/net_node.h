@@ -139,7 +139,6 @@ namespace nodetool
 
     typedef COMMAND_HANDSHAKE_T<typename t_payload_net_handler::payload_type> COMMAND_HANDSHAKE;
     typedef COMMAND_TIMED_SYNC_T<typename t_payload_net_handler::payload_type> COMMAND_TIMED_SYNC;
-    static_assert(p2p_connection_context::handshake_command() == COMMAND_HANDSHAKE::ID, "invalid handshake command id");
 
     typedef epee::net_utils::boosted_tcp_server<epee::levin::async_protocol_handler<p2p_connection_context>> net_server;
 
@@ -150,7 +149,7 @@ namespace nodetool
     {
       config_t()
         : m_net_config(),
-          m_peer_id(1),
+          m_peer_id(crypto::rand<uint64_t>()),
           m_support_flags(0)
       {}
 
@@ -165,7 +164,6 @@ namespace nodetool
       network_zone()
         : m_connect(nullptr),
           m_net_server(epee::net_utils::e_connection_type_P2P),
-          m_seed_nodes(),
           m_bind_ip(),
           m_bind_ipv6_address(),
           m_port(),
@@ -177,9 +175,7 @@ namespace nodetool
           m_proxy_address(),
           m_current_number_of_out_peers(0),
           m_current_number_of_in_peers(0),
-          m_seed_nodes_lock(),
-          m_can_pingback(false),
-          m_seed_nodes_initialized(false)
+          m_can_pingback(false)
       {
         set_config_defaults();
       }
@@ -187,7 +183,6 @@ namespace nodetool
       network_zone(boost::asio::io_service& public_service)
         : m_connect(nullptr),
           m_net_server(public_service, epee::net_utils::e_connection_type_P2P),
-          m_seed_nodes(),
           m_bind_ip(),
           m_bind_ipv6_address(),
           m_port(),
@@ -199,16 +194,13 @@ namespace nodetool
           m_proxy_address(),
           m_current_number_of_out_peers(0),
           m_current_number_of_in_peers(0),
-          m_seed_nodes_lock(),
-          m_can_pingback(false),
-          m_seed_nodes_initialized(false)
+          m_can_pingback(false)
       {
         set_config_defaults();
       }
 
       connect_func* m_connect;
       net_server m_net_server;
-      std::vector<epee::net_utils::network_address> m_seed_nodes;
       std::string m_bind_ip;
       std::string m_bind_ipv6_address;
       std::string m_port;
@@ -220,9 +212,7 @@ namespace nodetool
       boost::asio::ip::tcp::endpoint m_proxy_address;
       std::atomic<unsigned int> m_current_number_of_out_peers;
       std::atomic<unsigned int> m_current_number_of_in_peers;
-      boost::shared_mutex m_seed_nodes_lock;
       bool m_can_pingback;
-      bool m_seed_nodes_initialized;
 
     private:
       void set_config_defaults() noexcept
@@ -288,7 +278,7 @@ namespace nodetool
     uint32_t get_max_out_public_peers() const;
     void change_max_in_public_peers(size_t count);
     uint32_t get_max_in_public_peers() const;
-    virtual bool block_host(epee::net_utils::network_address address, time_t seconds = P2P_IP_BLOCKTIME, bool add_only = false);
+    virtual bool block_host(const epee::net_utils::network_address &adress, time_t seconds = P2P_IP_BLOCKTIME);
     virtual bool unblock_host(const epee::net_utils::network_address &address);
     virtual bool block_subnet(const epee::net_utils::ipv4_network_subnet &subnet, time_t seconds = P2P_IP_BLOCKTIME);
     virtual bool unblock_subnet(const epee::net_utils::ipv4_network_subnet &subnet);
@@ -370,7 +360,6 @@ namespace nodetool
     bool peer_sync_idle_maker();
     bool do_handshake_with_peer(peerid_type& pi, p2p_connection_context& context, bool just_take_peerlist = false);
     bool do_peer_timed_sync(const epee::net_utils::connection_context_base& context, peerid_type peer_id);
-    bool update_dns_blocklist();
 
     bool make_new_connection_from_anchor_peerlist(const std::vector<anchor_peerlist_entry>& anchor_peerlist);
     bool make_new_connection_from_peerlist(network_zone& zone, bool use_white_list);
@@ -394,10 +383,9 @@ namespace nodetool
     void record_addr_failed(const epee::net_utils::network_address& addr);
     bool is_addr_recently_failed(const epee::net_utils::network_address& addr);
     bool is_priority_node(const epee::net_utils::network_address& na);
-    std::set<std::string> get_ip_seed_nodes() const;
-    std::set<std::string> get_dns_seed_nodes();
-    std::set<std::string> get_seed_nodes(epee::net_utils::zone);
-    bool connect_to_seed(epee::net_utils::zone);
+    std::set<std::string> get_seed_nodes(cryptonote::network_type nettype) const;
+    std::set<std::string> get_seed_nodes();
+    bool connect_to_seed();
 
     template <class Container>
     bool connect_to_peerlist(const Container& peers);
@@ -476,10 +464,12 @@ namespace nodetool
     epee::math_helper::once_a_time_seconds<60*30, false> m_peerlist_store_interval;
     epee::math_helper::once_a_time_seconds<60> m_gray_peerlist_housekeeping_interval;
     epee::math_helper::once_a_time_seconds<3600, false> m_incoming_connections_interval;
-    epee::math_helper::once_a_time_seconds<7000> m_dns_blocklist_interval;
 
     std::list<epee::net_utils::network_address>   m_priority_peers;
     std::vector<epee::net_utils::network_address> m_exclusive_peers;
+    std::vector<epee::net_utils::network_address> m_seed_nodes;
+    bool m_seed_nodes_initialized = false;
+    boost::shared_mutex m_seed_nodes_lock;
     std::atomic_flag m_fallback_seed_nodes_added;
     std::vector<nodetool::peerlist_entry> m_command_line_peers;
     uint64_t m_peer_livetime;
@@ -515,8 +505,6 @@ namespace nodetool
     cryptonote::network_type m_nettype;
 
     epee::net_utils::ssl_support_t m_ssl_support;
-
-    bool m_enable_dns_blocklist;
   };
 
     const int64_t default_limit_up = P2P_DEFAULT_LIMIT_RATE_UP;      // kB/s
@@ -535,10 +523,8 @@ namespace nodetool
     extern const command_line::arg_descriptor<std::vector<std::string> > arg_p2p_seed_node;
     extern const command_line::arg_descriptor<std::vector<std::string> > arg_tx_proxy;
     extern const command_line::arg_descriptor<std::vector<std::string> > arg_anonymous_inbound;
-    extern const command_line::arg_descriptor<std::string> arg_ban_list;
     extern const command_line::arg_descriptor<bool> arg_p2p_hide_my_port;
     extern const command_line::arg_descriptor<bool> arg_no_sync;
-    extern const command_line::arg_descriptor<bool> arg_enable_dns_blocklist;
 
     extern const command_line::arg_descriptor<bool>        arg_no_igd;
     extern const command_line::arg_descriptor<std::string> arg_igd;

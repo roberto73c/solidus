@@ -31,7 +31,6 @@
 #pragma once
 #include "include_base_utils.h"
 
-#include <atomic>
 #include <set>
 #include <tuple>
 #include <unordered_map>
@@ -330,14 +329,11 @@ namespace cryptonote
      *   isn't old enough that relaying it is considered harmful
      * Note a transaction can be "relayable" even if do_not_relay is true
      *
-     * This function will skip all DB checks if an insufficient amount of
-     * time since the last call.
-     *
      * @param txs return-by-reference the transactions and their hashes
      *
-     * @return True if DB was checked, false if DB checks skipped.
+     * @return true
      */
-    bool get_relayable_transactions(std::vector<std::tuple<crypto::hash, cryptonote::blobdata, relay_method>>& txs);
+    bool get_relayable_transactions(std::vector<std::tuple<crypto::hash, cryptonote::blobdata, relay_method>>& txs) const;
 
     /**
      * @brief tell the pool that certain transactions were just relayed
@@ -613,9 +609,6 @@ private:
     mutable std::unordered_map<crypto::hash, std::tuple<bool, tx_verification_context, uint64_t, crypto::hash>> m_input_cache;
 
     std::unordered_map<crypto::hash, transaction> m_parsed_tx_cache;
-
-    //! Next timestamp that a DB check for relayable txes is allowed
-    std::atomic<time_t> m_next_check;
   };
 }
 

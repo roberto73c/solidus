@@ -6,16 +6,15 @@ After=network.target
 User=solidus
 Group=solidus
 WorkingDirectory=~
-RuntimeDirectory=solidus
 StateDirectory=solidus
 LogsDirectory=solidus
 
 # Clearnet config
 #
-Type=forking
-PIDFile=/run/solidus/solidusd.pid
-ExecStart=/usr/bin/solidusd --config-file /etc/solidusd.conf \
-    --detach --pidfile /run/solidus/solidusd.pid
+Type=simple
+ExecStart=/usr/bin/solidusd --config-file /etc/solidusd.conf --non-interactive
+StandardOutput=null
+StandardError=null
 
 # Tor config
 #

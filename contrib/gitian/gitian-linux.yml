@@ -43,7 +43,7 @@ packages:
 - "libprotobuf-dev"
 - "python3-zmq"
 remotes:
-- "url": "https://github.com/roberto73c/solidus.git"
+- "url": "https://github.com/solidus-project/solidus.git"
   "dir": "solidus"
 files: []
 script: |

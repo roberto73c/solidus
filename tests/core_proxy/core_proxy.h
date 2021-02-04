@@ -66,16 +66,14 @@ namespace tests
       
 
   public:
-    virtual bool is_synchronized() const final { return true; }
     void on_synchronized(){}
     void safesyncmode(const bool){}
-    virtual uint64_t get_current_blockchain_height() const final {return 1;}
+    uint64_t get_current_blockchain_height(){return 1;}
     void set_target_blockchain_height(uint64_t) {}
     bool init(const boost::program_options::variables_map& vm);
     bool deinit(){return true;}
     bool get_short_chain_history(std::list<crypto::hash>& ids);
-    bool have_block(const crypto::hash& id, int *where = NULL);
-    bool have_block_unlocked(const crypto::hash& id, int *where = NULL);
+    bool have_block(const crypto::hash& id);
     void get_blockchain_top(uint64_t& height, crypto::hash& top_id);
     bool handle_incoming_tx(const cryptonote::tx_blob_entry& tx_blob, cryptonote::tx_verification_context& tvc, cryptonote::relay_method tx_relay, bool relayed);
     bool handle_incoming_txs(const std::vector<cryptonote::tx_blob_entry>& tx_blobs, std::vector<cryptonote::tx_verification_context>& tvc, cryptonote::relay_method tx_relay, bool relayed);
@@ -113,6 +111,5 @@ namespace tests
     bool prune_blockchain(uint32_t pruning_seed) const { return true; }
     bool get_txpool_complement(const std::vector<crypto::hash> &hashes, std::vector<cryptonote::blobdata> &txes) { return false; }
     bool get_pool_transaction_hashes(std::vector<crypto::hash>& txs, bool include_unrelayed_txes = true) const { return false; }
-    crypto::hash get_block_id_by_height(uint64_t height) const { return crypto::null_hash; }
   };
 }

@@ -1406,9 +1406,9 @@ namespace cryptonote
     return m_blockchain_storage.find_blockchain_supplement(qblock_ids, clip_pruned, resp);
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::find_blockchain_supplement(const uint64_t req_start_block, const std::list<crypto::hash>& qblock_ids, std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > >& blocks, uint64_t& total_height, uint64_t& start_height, bool pruned, bool get_miner_tx_hash, size_t max_block_count, size_t max_tx_count) const
+  bool core::find_blockchain_supplement(const uint64_t req_start_block, const std::list<crypto::hash>& qblock_ids, std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > >& blocks, uint64_t& total_height, uint64_t& start_height, bool pruned, bool get_miner_tx_hash, size_t max_count) const
   {
-    return m_blockchain_storage.find_blockchain_supplement(req_start_block, qblock_ids, blocks, total_height, start_height, pruned, get_miner_tx_hash, max_block_count, max_tx_count);
+    return m_blockchain_storage.find_blockchain_supplement(req_start_block, qblock_ids, blocks, total_height, start_height, pruned, get_miner_tx_hash, max_count);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMAND_RPC_GET_OUTPUTS_BIN::response& res) const
@@ -1508,11 +1508,6 @@ namespace cryptonote
       m_pprotocol->relay_block(arg, exclude_context);
     }
     return true;
-  }
-  //-----------------------------------------------------------------------------------------------
-  bool core::is_synchronized() const
-  {
-    return m_pprotocol != nullptr && m_pprotocol->is_synchronized();
   }
   //-----------------------------------------------------------------------------------------------
   void core::on_synchronized()
@@ -1625,14 +1620,9 @@ namespace cryptonote
     return m_mempool.get_transactions_count(include_sensitive_txes);
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::have_block_unlocked(const crypto::hash& id, int *where) const
+  bool core::have_block(const crypto::hash& id) const
   {
-    return m_blockchain_storage.have_block_unlocked(id, where);
-  }
-  //-----------------------------------------------------------------------------------------------
-  bool core::have_block(const crypto::hash& id, int *where) const
-  {
-    return m_blockchain_storage.have_block(id, where);
+    return m_blockchain_storage.have_block(id);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::parse_tx_from_blob(transaction& tx, crypto::hash& tx_hash, const blobdata& blob) const
@@ -1735,7 +1725,7 @@ namespace cryptonote
       m_starter_message_showed = true;
     }
 
-    relay_txpool_transactions(); // txpool handles periodic DB checking
+    m_txpool_auto_relayer.do_call(boost::bind(&core::relay_txpool_transactions, this));
     m_check_updates_interval.do_call(boost::bind(&core::check_updates, this));
     m_check_disk_space_interval.do_call(boost::bind(&core::check_disk_space, this));
     m_block_rate_interval.do_call(boost::bind(&core::check_block_rate, this));
