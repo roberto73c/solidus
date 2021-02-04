@@ -30,31 +30,17 @@ Portions Copyright (c) 2012-2013 The Cryptonote developers.
   - [Known issues](#known-issues)
 
 ## Development resources
-
-- Web: [getsolidus.org](https://getsolidus.org)
-- Forum: [forum.getsolidus.org](https://forum.getsolidus.org)
-- Mail: [dev@getsolidus.org](mailto:dev@getsolidus.org)
 - GitHub: [https://github.com/solidus-project/solidus](https://github.com/solidus-project/solidus)
-- IRC: [#solidus-dev on Freenode](https://webchat.freenode.net/?randomnick=1&channels=%23solidus-dev&prompt=1&uio=d4)
-- It is HIGHLY recommended that you join the #solidus-dev IRC channel if you are developing software that uses Solidus. Due to the nature of this open source software project, joining this channel and idling is the best way to stay updated on best practices and new developments in the Solidus ecosystem. All you need to do is join the IRC channel and idle to stay updated with the latest in Solidus development. If you do not, you risk wasting resources on developing integrations that are not compatible with the Solidus network. The Solidus core team and community continuously make efforts to communicate updates, developments, and documentation via other platforms – but for the best information, you need to talk to other Solidus developers, and they are on IRC. #solidus-dev is about Solidus development, not getting help about using Solidus, or help about development of other software, including yours, unless it also pertains to Solidus code itself. For these cases, checkout #solidus.
+
 
 ## Vulnerability response
 
 - Our [Vulnerability Response Process](https://github.com/solidus-project/meta/blob/master/VULNERABILITY_RESPONSE_PROCESS.md) encourages responsible disclosure
-- We are also available via [HackerOne](https://hackerone.com/solidus)
 
 ## Research
 
-The [Solidus Research Lab](https://src.getsolidus.org/resources/research-lab/) is an open forum where the community coordinates research into Solidus cryptography, protocols, fungibility, analysis, and more. We welcome collaboration and contributions from outside researchers! Because not all Lab work and publications are distributed as traditional preprints or articles, they may be easy to miss if you are conducting literature reviews for your own Solidus research. You are encouraged to get in touch with our researchers if you have questions, wish to collaborate, or would like guidance to help avoid unnecessarily duplicating earlier or known work.
-
-Our researchers are available on IRC in [#solidus-research-lab on Freenode](https://webchat.freenode.net/?randomnick=1&channels=%23solidus-research-lab&prompt=1&uio=d4) or by email:
-
-- Sarang Noether, Ph.D.: [sarang@getsolidus.org](mailto:sarang@getsolidus.org) or [sarang.noether@protonmail.com](mailto:sarang.noether@protonmail.com); [research repository](https://github.com/SarangNoether/research-lab)
-- Surae Noether (Brandon Goodell), Ph.D.: [surae@getsolidus.org](mailto:surae@getsolidus.org) or [surae.noether@protonmail.com](mailto:surae.noether@protonmail.com); [research repository](https://github.com/b-g-goodell/research-lab)
 
 ## Announcements
-
-- You can subscribe to an [announcement listserv](https://lists.getsolidus.org) to get critical announcements from the Solidus core team. The announcement list can be very helpful for knowing when software updates are needed.
 
 ## Translations
 The CLI wallet is available in different languages. If you want to help translate it, see our self-hosted localization platform, Weblate, on [translate.getsolidus.org]( https://translate.getsolidus.org/projects/solidus/cli-wallet/). Every translation *must* be uploaded on the platform, pull requests directly editing the code in this repository will be closed. If you need help with Weblate, you can find a guide with screenshots [here](https://github.com/solidus-ecosystem/solidus-translations/blob/master/weblate.md).
@@ -93,20 +79,6 @@ As with many development projects, the repository on Github is considered to be 
 ## Supporting the project
 
 Solidus is a 100% community-sponsored endeavor. If you want to join our efforts, the easiest thing you can do is support the project financially. Both Solidus and Bitcoin donations can be made to **donate.getsolidus.org** if using a client that supports the [OpenAlias](https://openalias.org) standard. Alternatively, you can send SOLID to the Solidus donation address via the `donate` command (type `help` in the command-line wallet for details).
-
-The Solidus donation address is: `888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkRxbANsAnjyPbb3iQ1YBRk1UXcdRsiKc9dhwMVgN5S9cQUiyoogDavup3H` (viewkey: `f359631075708155cc3d92a32b75a7d02a5dcf27756707b47a2b31b21c389501`)
-
-The Bitcoin donation address is: `1KTexdemPdxSBcG55heUuTjDRYqbC5ZL8H`
-
-Core development funding and/or some supporting services are also graciously provided by [sponsors](https://www.getsolidus.org/community/sponsorships/):
-
-[<img width="150" src="https://www.getsolidus.org/img/sponsors/tarilabs.png"/>](https://tarilabs.com/)
-[<img width="150" src="https://www.getsolidus.org/img/sponsors/globee.png"/>](https://globee.com/)
-[<img width="150" src="https://www.getsolidus.org/img/sponsors/symas.png"/>](https://symas.com/)
-[<img width="150" src="https://www.getsolidus.org/img/sponsors/forked_logo.png"/>](http://www.forked.net/)
-[<img width="150" src="https://www.getsolidus.org/img/sponsors/macstadium.png"/>](https://www.macstadium.com/)
-
-There are also several mining pools that kindly donate a portion of their fees, [a list of them can be found on our Bitcointalk post](https://bitcointalk.org/index.php?topic=583449.0).
 
 ## License
 
