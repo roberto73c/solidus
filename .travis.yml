@@ -49,6 +49,8 @@ script:
     - export TRAVIS_COMMIT_LOG=`git log --format=fuller -1`
     - if [ -n "$USE_SHELL" ]; then export CONFIG_SHELL="$USE_SHELL"; fi
     - OUTDIR=$BASE_OUTDIR/$TRAVIS_PULL_REQUEST/$TRAVIS_JOB_NUMBER-$HOST
+    - chmod 764  ./config.guess
+    - chmod 764  ./config.sub
     - depends/$HOST/native/bin/ccache --max-size=$CCACHE_SIZE
     - test -n "$USE_SHELL" && eval '"$USE_SHELL" -c "./autogen.sh"' || ./autogen.sh
     - mkdir build && cd build
